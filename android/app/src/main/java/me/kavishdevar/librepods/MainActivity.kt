@@ -291,7 +291,6 @@ fun Main() {
 
     if (permissionState.allPermissionsGranted && (canDrawOverlays || overlaySkipped.value)) {
         val context = LocalContext.current
-        context.startService(Intent(context, AirPodsService::class.java))
 
         val navController = rememberNavController()
 
@@ -378,7 +377,7 @@ fun Main() {
             }
         }
 
-         serviceConnection = remember {
+        serviceConnection = remember {
             object : ServiceConnection {
                 override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
                     val binder = service as AirPodsService.LocalBinder
