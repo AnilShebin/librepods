@@ -34,6 +34,7 @@ class AACPManager {
     companion object {
         private const val TAG = "AACPManager"
 
+        @Suppress("unused")
         object Opcodes {
             const val SET_FEATURE_FLAGS: Byte = 0x4D
             const val REQUEST_NOTIFICATIONS: Byte = 0x0F
@@ -187,7 +188,7 @@ class AACPManager {
 
     var oldConnectedDevices: List<ConnectedDevice> = listOf()
         private set
-        
+
     var connectedDevices: List<ConnectedDevice> = listOf()
         private set
 
@@ -735,7 +736,7 @@ class AACPManager {
         for (connectedDevice in connectedDevices) {
             if (connectedDevice.mac != selfMacAddress) {
                 Log.d(TAG, "Sending Hijack Request packet to ${connectedDevice.mac}")
-                success = sendDataPacket(createHijackRequestPacket(connectedDevice.mac)) && success
+                success = sendDataPacket(createHijackRequestPacket(connectedDevice.mac)) || success
             }
         }
         return success
@@ -872,7 +873,7 @@ class AACPManager {
         for (connectedDevice in connectedDevices) {
             if (connectedDevice.mac != selfMacAddress) {
                 Log.d(TAG, "Sending Hijack Reversed packet to ${connectedDevice.mac}")
-                success = sendDataPacket(createHijackReversedPacket(connectedDevice.mac)) && success
+                success = sendDataPacket(createHijackReversedPacket(connectedDevice.mac)) || success
             }
         }
         return success
@@ -905,7 +906,6 @@ class AACPManager {
         if (selfMacAddress.length != 17 || !selfMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}")) || targetMacAddress.length != 17 || !targetMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"))) {
             throw IllegalArgumentException("MAC address must be 6 bytes")
         }
-    
         Log.d(TAG, "Sending Add TiPi Device packet to $targetMacAddress")
         return sendDataPacket(createAddTiPiDevicePacket(selfMacAddress, targetMacAddress))
     }
