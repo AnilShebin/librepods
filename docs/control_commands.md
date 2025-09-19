@@ -19,9 +19,10 @@ These commands
 
 | Command identifier | Description | Format |
 |--------------|---------------------|--------|
-| 0x01 | Mic Mode | Single value (1 byte) |
+| 0x01 | Mic Mode | Single value (1 byte): `0x00` = Automatic, `0x01` = Right, `0x02` = Left |
 | 0x05 | Button Send Mode | Single value (1 byte) |
 | 0x06 | Has ownership | Single value (1 byte): `0x01` = own, `0x00` = doesn't own |
+| 0x0A | Ear Detection | Single value (1 byte): `0x01` = enabled, `0x02` = disabled |
 | 0x12 | VoiceTrigger for Siri | Single Value (1 byte): `0x01` = enabled, `0x01` = disabled |
 | 0x14 | SingleClickMode | Single value (1 byte) |
 | 0x15 | DoubleClickMode | Single value (1 byte) |
@@ -34,6 +35,7 @@ These commands
 | 0x0D | ListeningMode | Single value (1 byte): 1 = Off, 2 = noise cancellation, 3 = transparency, 4 = adaptive |
 | 0x1E | AutoAnswerMode | Single value (1 byte) |
 | 0x1F | Chime Volume | Single value (1 byte): 0 to 100|
+| 0x20 | Connect Automatically | Single value (1 byte): `0x01` = enabled, `0x02` = disabled |
 | 0x23 | VolumeSwipeInterval | Single value (1 byte): 0x00 = Default, `0x01` = Longer, `0x02` = Longest |
 | 0x24 | Call Management Config | Single value (1 byte) |
 | 0x25 | VolumeSwipeMode | Single value (1 byte): `0x01` = enabled, `0x02` = disabled |
