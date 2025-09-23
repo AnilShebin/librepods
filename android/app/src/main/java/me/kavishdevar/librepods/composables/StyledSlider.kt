@@ -19,6 +19,7 @@
 package me.kavishdevar.librepods.composables
 
 import android.content.res.Configuration
+import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -87,7 +88,7 @@ import kotlin.math.roundToInt
 
 @Composable
 fun StyledSlider(
-    label: String? = null,
+    label: String? = null,  // New optional parameter for the label
     mutableFloatState: MutableFloatState,
     onValueChange: (Float) -> Unit,
     valueRange: ClosedFloatingPointRange<Float>,
@@ -146,18 +147,6 @@ fun StyledSlider(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    if (label != null) {
-                        Text(
-                            text = label,
-                            style = TextStyle(
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = labelTextColor,
-                                fontFamily = FontFamily(Font(R.font.sf_pro))
-                            ),
-                        )
-                    }
-
                     if (startLabel != null || endLabel != null) {
                         Row(
                             modifier = Modifier
@@ -358,17 +347,38 @@ fun StyledSlider(
     }
 
     if (independent) {
-        Box(
+
+        Column (
             modifier = Modifier
-                .fillMaxWidth()
-                .background(backgroundColor, RoundedCornerShape(14.dp))
-                .padding(horizontal = 8.dp, vertical = 0.dp)
-                .heightIn(min = 55.dp),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            content()
+            if (label != null) {
+                Text(
+                    text = label,
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Light,
+                        color = labelTextColor.copy(alpha = 0.6f),
+                        fontFamily = FontFamily(Font(R.font.sf_pro))
+                    ),
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(backgroundColor, RoundedCornerShape(14.dp))
+                    .padding(horizontal = 8.dp, vertical = 0.dp)
+                    .heightIn(min = 55.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                content()
+            }
         }
     } else {
+        if (label != null) Log.w("StyledSlider", "Label is ignored when independent is false")
         content()
     }
 }

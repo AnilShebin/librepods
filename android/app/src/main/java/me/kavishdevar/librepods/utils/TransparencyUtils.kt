@@ -25,7 +25,8 @@ data class TransparencySettings(
     val leftAmbientNoiseReduction: Float,
     val rightAmbientNoiseReduction: Float,
     val netAmplification: Float,
-    val balance: Float
+    val balance: Float,
+    val ownVoiceAmplification: Float? = null
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -44,6 +45,7 @@ data class TransparencySettings(
         if (rightAmbientNoiseReduction != other.rightAmbientNoiseReduction) return false
         if (!leftEQ.contentEquals(other.leftEQ)) return false
         if (!rightEQ.contentEquals(other.rightEQ)) return false
+        if (ownVoiceAmplification != other.ownVoiceAmplification) return false
 
         return true
     }
@@ -60,6 +62,7 @@ data class TransparencySettings(
         result = 31 * result + rightAmbientNoiseReduction.hashCode()
         result = 31 * result + leftEQ.contentHashCode()
         result = 31 * result + rightEQ.contentHashCode()
+        result = 31 * result + (ownVoiceAmplification?.hashCode() ?: 0)
         return result
     }
 }
@@ -91,6 +94,12 @@ fun parseTransparencySettingsResponse(data: ByteArray): TransparencySettings? {
     val rightConversationBoost = rightConvFloat > 0.5f
     val rightAmbientNoiseReduction = buffer.float
 
+    val ownVoiceAmplification = if (buffer.remaining() >= 4) {
+        buffer.float
+    } else {
+        null
+    }
+
     val avg = (leftAmplification + rightAmplification) / 2
     val amplification = avg.coerceIn(-1f, 1f)
     val diff = rightAmplification - leftAmplification
@@ -109,7 +118,8 @@ fun parseTransparencySettingsResponse(data: ByteArray): TransparencySettings? {
         leftAmbientNoiseReduction = leftAmbientNoiseReduction,
         rightAmbientNoiseReduction = rightAmbientNoiseReduction,
         netAmplification = amplification,
-        balance = balance
+        balance = balance,
+        ownVoiceAmplification = ownVoiceAmplification
     )
 }
 
@@ -120,7 +130,9 @@ fun sendTransparencySettings(attManager: ATTManager, transparencySettings: Trans
     debounceJob = CoroutineScope(Dispatchers.IO).launch {
         delay(100)
         try {
-            val buffer = ByteBuffer.allocate(100).order(ByteOrder.LITTLE_ENDIAN)
+            val buffer = ByteBuffer.allocate(
+                if (transparencySettings.ownVoiceAmplification != null) 104 else 100
+            ).order(ByteOrder.LITTLE_ENDIAN)
 
             buffer.putFloat(if (transparencySettings.enabled) 1.0f else 0.0f)
 
@@ -139,6 +151,10 @@ fun sendTransparencySettings(attManager: ATTManager, transparencySettings: Trans
             buffer.putFloat(transparencySettings.rightTone)
             buffer.putFloat(if (transparencySettings.rightConversationBoost) 1.0f else 0.0f)
             buffer.putFloat(transparencySettings.rightAmbientNoiseReduction)
+
+            if (transparencySettings.ownVoiceAmplification != null) {
+                buffer.putFloat(transparencySettings.ownVoiceAmplification)
+            }
 
             val data = buffer.array()
             attManager.write(ATTHandles.TRANSPARENCY, value = data)

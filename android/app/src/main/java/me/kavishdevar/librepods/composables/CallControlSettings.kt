@@ -287,7 +287,7 @@ fun CallControlSettings(hazeState: HazeState) {
                         )
                     }
 
-                    DragSelectableDropdown(
+                    StyledDropdown(
                         expanded = showSinglePressDropdown,
                         onDismissRequest = {
                             showSinglePressDropdown = false
@@ -415,7 +415,7 @@ fun CallControlSettings(hazeState: HazeState) {
                         )
                     }
 
-                    DragSelectableDropdown(
+                    StyledDropdown(
                         expanded = showDoublePressDropdown,
                         onDismissRequest = {
                             showDoublePressDropdown = false

@@ -363,17 +363,8 @@ fun TransparencySettingsScreen(navController: NavController) {
                     description = stringResource(R.string.customize_transparency_mode_description)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.amplification).uppercase(),
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Light,
-                        color = textColor.copy(alpha = 0.6f),
-                        fontFamily = FontFamily(Font(R.font.sf_pro))
-                    ),
-                    modifier = Modifier.padding(8.dp, bottom = 0.dp)
-                )
                 StyledSlider(
+                    label = stringResource(R.string.amplification).uppercase(),
                     valueRange = -1f..1f,
                     mutableFloatState = amplificationSliderValue,
                     onValueChange = {
@@ -384,17 +375,8 @@ fun TransparencySettingsScreen(navController: NavController) {
                     independent = true
                 )
 
-                Text(
-                    text = stringResource(R.string.balance).uppercase(),
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Light,
-                        color = textColor.copy(alpha = 0.6f),
-                        fontFamily = FontFamily(Font(R.font.sf_pro))
-                    ),
-                    modifier = Modifier.padding(8.dp, bottom = 0.dp)
-                )
                 StyledSlider(
+                    label = stringResource(R.string.balance).uppercase(),
                     valueRange = -1f..1f,
                     mutableFloatState = balanceSliderValue,
                     onValueChange = {
@@ -406,17 +388,8 @@ fun TransparencySettingsScreen(navController: NavController) {
                     independent = true,
                 )
 
-                Text(
-                    text = stringResource(R.string.tone).uppercase(),
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Light,
-                        color = textColor.copy(alpha = 0.6f),
-                        fontFamily = FontFamily(Font(R.font.sf_pro))
-                    ),
-                    modifier = Modifier.padding(8.dp, bottom = 0.dp)
-                )
                 StyledSlider(
+                    label = stringResource(R.string.tone).uppercase(),
                     valueRange = -1f..1f,
                     mutableFloatState = toneSliderValue,
                     onValueChange = {
@@ -427,18 +400,8 @@ fun TransparencySettingsScreen(navController: NavController) {
                     independent = true,
                 )
 
-                Text(
-                    text = stringResource(R.string.ambient_noise_reduction).uppercase(),
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Light,
-                        color = textColor.copy(alpha = 0.6f),
-                        fontFamily = FontFamily(Font(R.font.sf_pro))
-                    ),
-                    modifier = Modifier.padding(8.dp, bottom = 0.dp)
-                )
-
                 StyledSlider(
+                    label = stringResource(R.string.ambient_noise_reduction).uppercase(),
                     valueRange = 0f..1f,
                     mutableFloatState = ambientNoiseReductionSliderValue,
                     onValueChange = {

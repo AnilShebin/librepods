@@ -25,6 +25,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -41,6 +42,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
@@ -48,6 +51,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -62,6 +66,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -73,6 +78,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -94,10 +102,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.composables.StyledSlider
 import me.kavishdevar.librepods.composables.LoudSoundReductionSwitch
 import me.kavishdevar.librepods.composables.NavigationButton
 import me.kavishdevar.librepods.composables.SinglePodANCSwitch
+import me.kavishdevar.librepods.composables.StyledSlider
+import me.kavishdevar.librepods.composables.StyledDropdown
 import me.kavishdevar.librepods.composables.StyledSwitch
 import me.kavishdevar.librepods.composables.VolumeControlSwitch
 import me.kavishdevar.librepods.services.ServiceManager
@@ -131,6 +140,36 @@ fun AccessibilitySettingsScreen(navController: NavController) {
     val trackColor = if (isDarkTheme) Color(0xFFB3B3B3) else Color(0xFF929491)
     val activeTrackColor = if (isDarkTheme) Color(0xFF007AFF) else Color(0xFF3C6DF5)
     val thumbColor = if (isDarkTheme) Color(0xFFFFFFFF) else Color(0xFFFFFFFF)
+
+    val hearingAidEnabled = remember { mutableStateOf(
+        aacpManager?.controlCommandStatusList?.find { it.identifier == AACPManager.Companion.ControlCommandIdentifiers.HEARING_AID }?.value?.getOrNull(1) == 0x01.toByte() &&
+                aacpManager?.controlCommandStatusList?.find { it.identifier == AACPManager.Companion.ControlCommandIdentifiers.HEARING_ASSIST_CONFIG }?.value?.getOrNull(0) == 0x01.toByte()
+    ) }
+
+    val hearingAidListener = remember {
+        object : AACPManager.ControlCommandListener {
+            override fun onControlCommandReceived(controlCommand: AACPManager.ControlCommand) {
+                if (controlCommand.identifier == AACPManager.Companion.ControlCommandIdentifiers.HEARING_AID.value ||
+                    controlCommand.identifier == AACPManager.Companion.ControlCommandIdentifiers.HEARING_ASSIST_CONFIG.value) {
+                    val aidStatus = aacpManager?.controlCommandStatusList?.find { it.identifier == AACPManager.Companion.ControlCommandIdentifiers.HEARING_AID }
+                    val assistStatus = aacpManager?.controlCommandStatusList?.find { it.identifier == AACPManager.Companion.ControlCommandIdentifiers.HEARING_ASSIST_CONFIG }
+                    hearingAidEnabled.value = (aidStatus?.value?.getOrNull(1) == 0x01.toByte()) && (assistStatus?.value?.getOrNull(0) == 0x01.toByte())
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        aacpManager?.registerControlCommandListener(AACPManager.Companion.ControlCommandIdentifiers.HEARING_AID, hearingAidListener)
+        aacpManager?.registerControlCommandListener(AACPManager.Companion.ControlCommandIdentifiers.HEARING_ASSIST_CONFIG, hearingAidListener)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            aacpManager?.unregisterControlCommandListener(AACPManager.Companion.ControlCommandIdentifiers.HEARING_AID, hearingAidListener)
+            aacpManager?.unregisterControlCommandListener(AACPManager.Companion.ControlCommandIdentifiers.HEARING_ASSIST_CONFIG, hearingAidListener)
+        }
+    }
 
     Scaffold(
         containerColor = if (isSystemInDarkTheme()) Color(
@@ -411,23 +450,14 @@ fun AccessibilitySettingsScreen(navController: NavController) {
                 }
             }
 
-            Text(
-                text = stringResource(R.string.tone_volume).uppercase(),
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Light,
-                    color = textColor.copy(alpha = 0.6f),
-                    fontFamily = FontFamily(Font(R.font.sf_pro))
-                ),
-                modifier = Modifier.padding(8.dp, bottom = 0.dp)
-            )
             StyledSlider(
+                label = stringResource(R.string.tone_volume).uppercase(),
                 mutableFloatState = toneVolumeValue,
                 onValueChange = {
                     toneVolumeValue.floatValue = it
                 },
-                valueRange = 0f..125f,
-                snapPoints = listOf(100f),
+                valueRange = 0f..100f,
+                snapPoints = listOf(75f),
                 startIcon = "\uDBC0\uDEA1",
                 endIcon = "\uDBC0\uDEA9",
                 independent = true
@@ -442,8 +472,25 @@ fun AccessibilitySettingsScreen(navController: NavController) {
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 SinglePodANCSwitch()
+                HorizontalDivider(
+                    thickness = 1.5.dp,
+                    color = Color(0x40888888),
+                    modifier = Modifier.padding(start = 12.dp, end = 0.dp)
+                )
+
                 VolumeControlSwitch()
+                HorizontalDivider(
+                    thickness = 1.5.dp,
+                    color = Color(0x40888888),
+                    modifier = Modifier.padding(start = 12.dp, end = 0.dp)
+                )
+
                 LoudSoundReductionSwitch()
+                HorizontalDivider(
+                    thickness = 1.5.dp,
+                    color = Color(0x40888888),
+                    modifier = Modifier.padding(start = 12.dp, end = 0.dp)
+                )
 
                 DropdownMenuComponent(
                     label = stringResource(R.string.press_speed),
@@ -461,8 +508,15 @@ fun AccessibilitySettingsScreen(navController: NavController) {
                                 ?: 0.toByte()
                         )
                     },
-                    textColor = textColor
+                    textColor = textColor,
+                    hazeState = hazeState
                 )
+                HorizontalDivider(
+                    thickness = 1.5.dp,
+                    color = Color(0x40888888),
+                    modifier = Modifier.padding(start = 12.dp, end = 0.dp)
+                )
+
                 DropdownMenuComponent(
                     label = stringResource(R.string.press_and_hold_duration),
                     options = listOf(
@@ -479,8 +533,15 @@ fun AccessibilitySettingsScreen(navController: NavController) {
                                 ?: 0.toByte()
                         )
                     },
-                    textColor = textColor
+                    textColor = textColor,
+                    hazeState = hazeState
                 )
+                HorizontalDivider(
+                    thickness = 1.5.dp,
+                    color = Color(0x40888888),
+                    modifier = Modifier.padding(start = 12.dp, end = 0.dp)
+                )
+                
                 DropdownMenuComponent(
                     label = stringResource(R.string.volume_swipe_speed),
                     options = listOf(
@@ -497,234 +558,237 @@ fun AccessibilitySettingsScreen(navController: NavController) {
                                 ?: 1.toByte()
                         )
                     },
-                    textColor = textColor
+                    textColor = textColor,
+                    hazeState = hazeState
                 )
             }
 
-            NavigationButton(
-                to = "transparency_customization",
-                name = stringResource(R.string.customize_transparency_mode),
-                navController = navController
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = stringResource(R.string.apply_eq_to).uppercase(),
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Light,
-                    color = textColor.copy(alpha = 0.6f),
-                    fontFamily = FontFamily(Font(R.font.sf_pro))
-                ),
-                modifier = Modifier.padding(8.dp, bottom = 0.dp)
-            )
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(backgroundColor, RoundedCornerShape(14.dp))
-                    .padding(vertical = 0.dp)
-            ) {
-                val darkModeLocal = isSystemInDarkTheme()
-
-                val phoneShape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)
-                var phoneBackgroundColor by remember {
-                    mutableStateOf(
-                        if (darkModeLocal) Color(
-                            0xFF1C1C1E
-                        ) else Color(0xFFFFFFFF)
-                    )
-                }
-                val phoneAnimatedBackgroundColor by animateColorAsState(
-                    targetValue = phoneBackgroundColor,
-                    animationSpec = tween(durationMillis = 500)
+            if (!hearingAidEnabled.value) {
+                NavigationButton(
+                    to = "transparency_customization",
+                    name = stringResource(R.string.customize_transparency_mode),
+                    navController = navController
                 )
 
-                Row(
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = stringResource(R.string.apply_eq_to).uppercase(),
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Light,
+                        color = textColor.copy(alpha = 0.6f),
+                        fontFamily = FontFamily(Font(R.font.sf_pro))
+                    ),
+                    modifier = Modifier.padding(8.dp, bottom = 0.dp)
+                )
+                Column(
                     modifier = Modifier
-                        .height(48.dp)
                         .fillMaxWidth()
-                        .background(phoneAnimatedBackgroundColor, phoneShape)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onPress = {
-                                    phoneBackgroundColor =
-                                        if (darkModeLocal) Color(0x40888888) else Color(0x40D9D9D9)
-                                    tryAwaitRelease()
-                                    phoneBackgroundColor =
-                                        if (darkModeLocal) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
-                                    phoneEQEnabled.value = !phoneEQEnabled.value
-                                }
-                            )
-                        }
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .background(backgroundColor, RoundedCornerShape(14.dp))
+                        .padding(vertical = 0.dp)
                 ) {
-                    Text(
-                        stringResource(R.string.phone),
-                        fontSize = 16.sp,
-                        color = textColor,
-                        fontFamily = FontFamily(Font(R.font.sf_pro)),
-                        modifier = Modifier.weight(1f)
-                    )
-                    Checkbox(
-                        checked = phoneEQEnabled.value,
-                        onCheckedChange = { phoneEQEnabled.value = it },
-                        colors = CheckboxDefaults.colors().copy(
-                            checkedCheckmarkColor = Color(0xFF007AFF),
-                            uncheckedCheckmarkColor = Color.Transparent,
-                            checkedBoxColor = Color.Transparent,
-                            uncheckedBoxColor = Color.Transparent,
-                            checkedBorderColor = Color.Transparent,
-                            uncheckedBorderColor = Color.Transparent
-                        ),
-                        modifier = Modifier
-                            .height(24.dp)
-                            .scale(1.5f)
-                    )
-                }
+                    val darkModeLocal = isSystemInDarkTheme()
 
-                HorizontalDivider(
-                    thickness = 1.5.dp,
-                    color = Color(0x40888888)
-                )
-
-                val mediaShape = RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)
-                var mediaBackgroundColor by remember {
-                    mutableStateOf(
-                        if (darkModeLocal) Color(
-                            0xFF1C1C1E
-                        ) else Color(0xFFFFFFFF)
+                    val phoneShape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)
+                    var phoneBackgroundColor by remember {
+                        mutableStateOf(
+                            if (darkModeLocal) Color(
+                                0xFF1C1C1E
+                            ) else Color(0xFFFFFFFF)
+                        )
+                    }
+                    val phoneAnimatedBackgroundColor by animateColorAsState(
+                        targetValue = phoneBackgroundColor,
+                        animationSpec = tween(durationMillis = 500)
                     )
-                }
-                val mediaAnimatedBackgroundColor by animateColorAsState(
-                    targetValue = mediaBackgroundColor,
-                    animationSpec = tween(durationMillis = 500)
-                )
 
-                Row(
-                    modifier = Modifier
-                        .height(48.dp)
-                        .fillMaxWidth()
-                        .background(mediaAnimatedBackgroundColor, mediaShape)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onPress = {
-                                    mediaBackgroundColor =
-                                        if (darkModeLocal) Color(0x40888888) else Color(0x40D9D9D9)
-                                    tryAwaitRelease()
-                                    mediaBackgroundColor =
-                                        if (darkModeLocal) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
-                                    mediaEQEnabled.value = !mediaEQEnabled.value
-                                }
-                            )
-                        }
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        stringResource(R.string.media),
-                        fontSize = 16.sp,
-                        color = textColor,
-                        fontFamily = FontFamily(Font(R.font.sf_pro)),
-                        modifier = Modifier.weight(1f)
-                    )
-                    Checkbox(
-                        checked = mediaEQEnabled.value,
-                        onCheckedChange = { mediaEQEnabled.value = it },
-                        colors = CheckboxDefaults.colors().copy(
-                            checkedCheckmarkColor = Color(0xFF007AFF),
-                            uncheckedCheckmarkColor = Color.Transparent,
-                            checkedBoxColor = Color.Transparent,
-                            uncheckedBoxColor = Color.Transparent,
-                            checkedBorderColor = Color.Transparent,
-                            uncheckedBorderColor = Color.Transparent
-                        ),
-                        modifier = Modifier
-                            .height(24.dp)
-                            .scale(1.5f)
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(backgroundColor, RoundedCornerShape(14.dp))
-                    .padding(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                for (i in 0 until 8) {
-                    val eqPhoneValue =
-                        remember(phoneMediaEQ.value[i]) { mutableFloatStateOf(phoneMediaEQ.value[i]) }
                     Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
+                            .height(48.dp)
                             .fillMaxWidth()
-                            .height(38.dp)
+                            .background(phoneAnimatedBackgroundColor, phoneShape)
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onPress = {
+                                        phoneBackgroundColor =
+                                            if (darkModeLocal) Color(0x40888888) else Color(0x40D9D9D9)
+                                        tryAwaitRelease()
+                                        phoneBackgroundColor =
+                                            if (darkModeLocal) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
+                                        phoneEQEnabled.value = !phoneEQEnabled.value
+                                    }
+                                )
+                            }
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = String.format("%.2f", eqPhoneValue.floatValue),
-                            fontSize = 12.sp,
+                            stringResource(R.string.phone),
+                            fontSize = 16.sp,
                             color = textColor,
-                            modifier = Modifier.padding(bottom = 4.dp)
+                            fontFamily = FontFamily(Font(R.font.sf_pro)),
+                            modifier = Modifier.weight(1f)
                         )
-
-                        Slider(
-                            value = eqPhoneValue.floatValue,
-                            onValueChange = { newVal ->
-                                eqPhoneValue.floatValue = newVal
-                                val newEQ = phoneMediaEQ.value.copyOf()
-                                newEQ[i] = eqPhoneValue.floatValue
-                                phoneMediaEQ.value = newEQ
-                            },
-                            valueRange = 0f..100f,
-                            modifier = Modifier
-                                .fillMaxWidth(0.9f)
-                                .height(36.dp),
-                            colors = SliderDefaults.colors(
-                                thumbColor = thumbColor,
-                                activeTrackColor = activeTrackColor,
-                                inactiveTrackColor = trackColor
+                        Checkbox(
+                            checked = phoneEQEnabled.value,
+                            onCheckedChange = { phoneEQEnabled.value = it },
+                            colors = CheckboxDefaults.colors().copy(
+                                checkedCheckmarkColor = Color(0xFF007AFF),
+                                uncheckedCheckmarkColor = Color.Transparent,
+                                checkedBoxColor = Color.Transparent,
+                                uncheckedBoxColor = Color.Transparent,
+                                checkedBorderColor = Color.Transparent,
+                                uncheckedBorderColor = Color.Transparent
                             ),
-                            thumb = {
-                                Box(
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .shadow(4.dp, CircleShape)
-                                        .background(thumbColor, CircleShape)
+                            modifier = Modifier
+                                .height(24.dp)
+                                .scale(1.5f)
+                        )
+                    }
+
+                    HorizontalDivider(
+                        thickness = 1.5.dp,
+                        color = Color(0x40888888)
+                    )
+
+                    val mediaShape = RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)
+                    var mediaBackgroundColor by remember {
+                        mutableStateOf(
+                            if (darkModeLocal) Color(
+                                0xFF1C1C1E
+                            ) else Color(0xFFFFFFFF)
+                        )
+                    }
+                    val mediaAnimatedBackgroundColor by animateColorAsState(
+                        targetValue = mediaBackgroundColor,
+                        animationSpec = tween(durationMillis = 500)
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .height(48.dp)
+                            .fillMaxWidth()
+                            .background(mediaAnimatedBackgroundColor, mediaShape)
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onPress = {
+                                        mediaBackgroundColor =
+                                            if (darkModeLocal) Color(0x40888888) else Color(0x40D9D9D9)
+                                        tryAwaitRelease()
+                                        mediaBackgroundColor =
+                                            if (darkModeLocal) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
+                                        mediaEQEnabled.value = !mediaEQEnabled.value
+                                    }
                                 )
-                            },
-                            track = {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(12.dp),
-                                    contentAlignment = Alignment.CenterStart
-                                )
-                                {
+                            }
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            stringResource(R.string.media),
+                            fontSize = 16.sp,
+                            color = textColor,
+                            fontFamily = FontFamily(Font(R.font.sf_pro)),
+                            modifier = Modifier.weight(1f)
+                        )
+                        Checkbox(
+                            checked = mediaEQEnabled.value,
+                            onCheckedChange = { mediaEQEnabled.value = it },
+                            colors = CheckboxDefaults.colors().copy(
+                                checkedCheckmarkColor = Color(0xFF007AFF),
+                                uncheckedCheckmarkColor = Color.Transparent,
+                                checkedBoxColor = Color.Transparent,
+                                uncheckedBoxColor = Color.Transparent,
+                                checkedBorderColor = Color.Transparent,
+                                uncheckedBorderColor = Color.Transparent
+                            ),
+                            modifier = Modifier
+                                .height(24.dp)
+                                .scale(1.5f)
+                        )
+                    }
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(backgroundColor, RoundedCornerShape(14.dp))
+                        .padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    for (i in 0 until 8) {
+                        val eqPhoneValue =
+                            remember(phoneMediaEQ.value[i]) { mutableFloatStateOf(phoneMediaEQ.value[i]) }
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(38.dp)
+                        ) {
+                            Text(
+                                text = String.format("%.2f", eqPhoneValue.floatValue),
+                                fontSize = 12.sp,
+                                color = textColor,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+
+                            Slider(
+                                value = eqPhoneValue.floatValue,
+                                onValueChange = { newVal ->
+                                    eqPhoneValue.floatValue = newVal
+                                    val newEQ = phoneMediaEQ.value.copyOf()
+                                    newEQ[i] = eqPhoneValue.floatValue
+                                    phoneMediaEQ.value = newEQ
+                                },
+                                valueRange = 0f..100f,
+                                modifier = Modifier
+                                    .fillMaxWidth(0.9f)
+                                    .height(36.dp),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = thumbColor,
+                                    activeTrackColor = activeTrackColor,
+                                    inactiveTrackColor = trackColor
+                                ),
+                                thumb = {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .shadow(4.dp, CircleShape)
+                                            .background(thumbColor, CircleShape)
+                                    )
+                                },
+                                track = {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(4.dp)
-                                            .background(trackColor, RoundedCornerShape(4.dp))
+                                            .height(12.dp),
+                                        contentAlignment = Alignment.CenterStart
                                     )
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth(eqPhoneValue.floatValue / 100f)
-                                            .height(4.dp)
-                                            .background(activeTrackColor, RoundedCornerShape(4.dp))
-                                    )
+                                    {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(4.dp)
+                                                .background(trackColor, RoundedCornerShape(4.dp))
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth(eqPhoneValue.floatValue / 100f)
+                                                .height(4.dp)
+                                                .background(activeTrackColor, RoundedCornerShape(4.dp))
+                                        )
+                                    }
                                 }
-                            }
-                        )
+                            )
 
-                        Text(
-                            text = stringResource(R.string.band_label, i + 1),
-                            fontSize = 12.sp,
-                            color = textColor,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
+                            Text(
+                                text = stringResource(R.string.band_label, i + 1),
+                                fontSize = 12.sp,
+                                color = textColor,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -832,55 +896,129 @@ fun AccessibilityToggle(
     }
 }
 
+
 @Composable
 private fun DropdownMenuComponent(
     label: String,
     options: List<String>,
     selectedOption: String,
     onOptionSelected: (String) -> Unit,
-    textColor: Color
+    textColor: Color,
+    hazeState: HazeState
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+    val itemHeightPx = with(density) { 48.dp.toPx() }
 
-    Column(
+    var expanded by remember { mutableStateOf(false) }
+    var touchOffset by remember { mutableStateOf<Offset?>(null) }
+    var boxPosition by remember { mutableStateOf(Offset.Zero) }
+    var lastDismissTime by remember { mutableLongStateOf(0L) }
+    var parentHoveredIndex by remember { mutableStateOf<Int?>(null) }
+    var parentDragActive by remember { mutableStateOf(false) }
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp)
+            .padding(start = 12.dp, end = 12.dp)
+            .height(55.dp)
+            .pointerInput(Unit) {
+                detectTapGestures { offset ->
+                    val now = System.currentTimeMillis()
+                    if (expanded) {
+                        expanded = false
+                        lastDismissTime = now
+                    } else {
+                        if (now - lastDismissTime > 250L) {
+                            touchOffset = offset
+                            expanded = true
+                        }
+                    }
+                }
+            }
+            .pointerInput(Unit) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { offset ->
+                        val now = System.currentTimeMillis()
+                        touchOffset = offset
+                        if (!expanded && now - lastDismissTime > 250L) {
+                            expanded = true
+                        }
+                        lastDismissTime = now
+                        parentDragActive = true
+                        parentHoveredIndex = 0
+                    },
+                    onDrag = { change, _ ->
+                        val current = change.position
+                        val touch = touchOffset ?: current
+                        val posInPopupY = current.y - touch.y
+                        val idx = (posInPopupY / itemHeightPx).toInt()
+                        parentHoveredIndex = idx
+                    },
+                    onDragEnd = {
+                        parentDragActive = false
+                        parentHoveredIndex?.let { idx ->
+                            if (idx in options.indices) {
+                                onOptionSelected(options[idx])
+                                expanded = false
+                                lastDismissTime = System.currentTimeMillis()
+                            }
+                        }
+                        parentHoveredIndex = null
+                    },
+                    onDragCancel = {
+                        parentDragActive = false
+                        parentHoveredIndex = null
+                    }
+                )
+            },
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = label,
-            style = TextStyle(
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = textColor
-            )
+            fontSize = 16.sp,
+            color = textColor,
+            modifier = Modifier.padding(bottom = 4.dp)
         )
-
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = true }
-                .padding(8.dp)
+            modifier = Modifier.onGloballyPositioned { coordinates ->
+                boxPosition = coordinates.positionInParent()
+            }
         ) {
-            Text(
-                text = selectedOption,
-                modifier = Modifier.padding(16.dp),
-            )
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    onClick = {
-                        onOptionSelected(option)
-                        expanded = false
-                    },
-                    text = { Text(text = option) }
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = selectedOption,
+                    fontSize = 16.sp,
+                    color = textColor.copy(alpha = 0.8f)
+                )
+                Icon(
+                    Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = textColor.copy(alpha = 0.6f)
                 )
             }
+
+            StyledDropdown(
+                expanded = expanded,
+                onDismissRequest = {
+                    expanded = false
+                    lastDismissTime = System.currentTimeMillis()
+                },
+                options = options,
+                selectedOption = selectedOption,
+                touchOffset = touchOffset,
+                boxPosition = boxPosition,
+                externalHoveredIndex = parentHoveredIndex,
+                externalDragActive = parentDragActive,
+                onOptionSelected = { option ->
+                    onOptionSelected(option)
+                    expanded = false
+                },
+                hazeState = hazeState
+            )
         }
     }
 }
