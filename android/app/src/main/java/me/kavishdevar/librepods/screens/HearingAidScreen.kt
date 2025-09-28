@@ -85,7 +85,7 @@ fun HearingAidScreen(navController: NavController) {
     val verticalScrollState  = rememberScrollState()
     val hazeState = remember { HazeState() }
     val snackbarHostState = remember { SnackbarHostState() }
-    val attManager = ServiceManager.getService()?.attManager ?: throw IllegalStateException("ATTManager not available")
+    val attManager = ServiceManager.getService()?.attManager ?: return
 
     val aacpManager = remember { ServiceManager.getService()?.aacpManager }
 
