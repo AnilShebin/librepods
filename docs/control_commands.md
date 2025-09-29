@@ -14,7 +14,7 @@ So, our control commands becomes
 
 Bytes that are not used are set to `0x00`. From what I've observed, the `data3` and `data4` are never used, and hence always zero. And, the `data2` is usually used when the configuration can be different for the two buds: like, to change the long press mode. Or, if there can be two "state" variables for the same feature: like the Hearing Aid feature.
 
-## Control Commands 
+## Identifiers and details 
 
 | Command identifier | Description |
 |--------------|---------------------|
