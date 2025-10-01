@@ -764,7 +764,9 @@ class AACPManager {
 
     fun sendMediaInformationNewDevice(selfMacAddress: String, targetMacAddress: String): Boolean {
         if (selfMacAddress.length != 17 || !selfMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}")) || targetMacAddress.length != 17 || !targetMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"))) {
-            throw IllegalArgumentException("MAC address must be 6 bytes")
+            // throw IllegalArgumentException("MAC address must be 6 bytes")
+            Log.w(TAG, "Invalid MAC address format, got: selfMacAddress=$selfMacAddress, targetMacAddress=$targetMacAddress")
+            return false
         }
         Log.d(TAG, "SELFMAC: ${selfMacAddress}, TARGETMAC: $targetMacAddress")
         Log.d(TAG, "Sending Media Information packet to $targetMacAddress")
@@ -804,7 +806,9 @@ class AACPManager {
 
     fun sendHijackRequest(selfMacAddress: String): Boolean {
         if (selfMacAddress.length != 17 || !selfMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"))) {
-            throw IllegalArgumentException("MAC address must be 6 bytes")
+            // throw IllegalArgumentException("MAC address must be 6 bytes")
+            Log.w(TAG, "Invalid MAC address format, got: selfMacAddress=$selfMacAddress")
+            return false
         }
         var success = false
         for (connectedDevice in connectedDevices) {
@@ -845,7 +849,9 @@ class AACPManager {
 
     fun sendMediaInformataion(selfMacAddress: String, streamingState: Boolean = false): Boolean {
         if (selfMacAddress.length != 17 || !selfMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"))) {
-            throw IllegalArgumentException("MAC address must be 6 bytes")
+            // throw IllegalArgumentException("MAC address must be 6 bytes")
+            Log.d(TAG, "Invalid MAC address format, got: selfMacAddress=$selfMacAddress")
+            return false
         }
         Log.d(TAG, "SELFMAC: $selfMacAddress")
         val targetMac = connectedDevices.find { it.mac != selfMacAddress }?.mac
@@ -904,7 +910,9 @@ class AACPManager {
 
     fun sendSmartRoutingShowUI(selfMacAddress: String): Boolean {
         if (selfMacAddress.length != 17 || !selfMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"))) {
-            throw IllegalArgumentException("MAC address must be 6 bytes")
+            // throw IllegalArgumentException("MAC address must be 6 bytes")
+            Log.w(TAG, "Invalid MAC address format, got: selfMacAddress=$selfMacAddress")
+            return false
         }
 
         val targetMac = connectedDevices.find { it.mac != selfMacAddress }?.mac
@@ -980,7 +988,9 @@ class AACPManager {
 
     fun sendAddTiPiDevice(selfMacAddress: String, targetMacAddress: String): Boolean {
         if (selfMacAddress.length != 17 || !selfMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}")) || targetMacAddress.length != 17 || !targetMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"))) {
-            throw IllegalArgumentException("MAC address must be 6 bytes")
+            // throw IllegalArgumentException("MAC address must be 6 bytes")
+            Log.w(TAG, "Invalid MAC address format, got: selfMacAddress=$selfMacAddress, targetMacAddress=$targetMacAddress")
+            return false
         }
         Log.d(TAG, "Sending Add TiPi Device packet to $targetMacAddress")
         return sendDataPacket(createAddTiPiDevicePacket(selfMacAddress, targetMacAddress))
