@@ -97,6 +97,8 @@ fun HearingAidScreen(navController: NavController) {
         mutableStateOf((aidStatus?.value?.getOrNull(1) == 0x01.toByte()) && (assistStatus?.value?.getOrNull(0) == 0x01.toByte()))
     }
 
+    var hazeStateS = rememberHazeState()
+
     StyledScaffold(
         title = stringResource(R.string.hearing_aid),
         snackbarHostState = snackbarHostState,
@@ -110,6 +112,7 @@ fun HearingAidScreen(navController: NavController) {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            hazeStateS = hazeState
             Spacer(modifier = Modifier.height(spacerHeight))
 
             val hearingAidListener = remember {
@@ -285,7 +288,7 @@ fun HearingAidScreen(navController: NavController) {
                 }
             }
         },
-        hazeState = rememberHazeState(),
+        hazeState = hazeStateS,
         // backdrop = backdrop
     )
 }
