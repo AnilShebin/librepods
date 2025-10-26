@@ -15,11 +15,11 @@ LibrePods unlocks Apple's exclusive AirPods features on non-Apple devices. Get a
 
 ## Device Compatibility
 
-| Status | Device | Features |
-|--------|--------|----------|
-| ✅ | AirPods Pro (2nd Gen) | Fully supported and tested |
-| ✅ | AirPods Pro (3rd Gen) | Fully supported (except heartrate monitoring) |
-| ⚠️ | Other AirPods models | Basic features (battery status, ear detection) should work |
+| Status | Device                | Features                                                   |
+| ------ | --------------------- | ---------------------------------------------------------- |
+| ✅      | AirPods Pro (2nd Gen) | Fully supported and tested                                 |
+| ✅      | AirPods Pro (3rd Gen) | Fully supported (except heartrate monitoring)              |
+| ⚠️      | Other AirPods models  | Basic features (battery status, ear detection) should work |
 
 Most features should work with any AirPods. Currently, I've only got AirPods Pro 2 to test with.
 
@@ -62,13 +62,13 @@ For installation and detailed info, see the [Linux README](/linux/README.md).
 
 #### Screenshots
 
-| | | |
-|-------------------|-------------------|-------------------|
-| ![Settings 1](/android/imgs/settings-1.png) | ![Settings 2](/android/imgs/settings-2.png) | ![Debug Screen](/android/imgs/debug.png) |
-| ![Battery Notification and QS Tile for NC Mode](/android/imgs/notification-and-qs.png) | ![Popup](/android/imgs/popup.png) | ![Head Tracking and Gestures](/android/imgs/head-tracking-and-gestures.png) |
-| ![Long Press Configuration](/android/imgs/long-press.png) | ![Widget](/android/imgs/widget.png) | ![Customizations 1](/android/imgs/customizations-1.png) |
-| ![Customizations 2](/android/imgs/customizations-2.png) | ![accessibility](/android/imgs/accessibility.png) |![transparency](/android/imgs/transparency.png) |
-|![hearing-aid](/android/imgs/hearing-aid.png) |![hearing-test](/android/imgs/hearing-test.png) | ![hearing-aid-adjustments](/android/imgs/hearing-aid-adjustments.png) |
+|                                                                                        |                                                   |                                                                             |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------- |
+| ![Settings 1](/android/imgs/settings-1.png)                                            | ![Settings 2](/android/imgs/settings-2.png)       | ![Debug Screen](/android/imgs/debug.png)                                    |
+| ![Battery Notification and QS Tile for NC Mode](/android/imgs/notification-and-qs.png) | ![Popup](/android/imgs/popup.png)                 | ![Head Tracking and Gestures](/android/imgs/head-tracking-and-gestures.png) |
+| ![Long Press Configuration](/android/imgs/long-press.png)                              | ![Widget](/android/imgs/widget.png)               | ![Customizations 1](/android/imgs/customizations-1.png)                     |
+| ![Customizations 2](/android/imgs/customizations-2.png)                                | ![accessibility](/android/imgs/accessibility.png) | ![transparency](/android/imgs/transparency.png)                             |
+| ![hearing-aid](/android/imgs/hearing-aid.png)                                          | ![hearing-test](/android/imgs/hearing-test.png)   | ![hearing-aid-adjustments](/android/imgs/hearing-aid-adjustments.png)       |
 
 
 here's a very unprofessional demo video
@@ -96,6 +96,9 @@ Accessibility settings like customizing transparency mode (amplification, balanc
 
 The hearing aid feature can now also be used. Currently it can only be used to adjust the settings, not actually take a hearing test because it requires much more precision. It is much better to use an already available audiogram result.
 
+>[!NOTE]
+> To enable these features, enable App Settings -> `act as Apple Device`.
+> This only works if you use the Xposed method or patch the library yourself. The root module method does not support this feature currently.
 
 #### Installation Methods
 
